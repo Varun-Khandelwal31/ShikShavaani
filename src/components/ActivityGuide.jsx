@@ -99,12 +99,17 @@ export default function ActivityGuide() {
   });
 
   const handleMic = () => {
+    if ('speechSynthesis' in window) window.speechSynthesis.resume();
     stop();
     if (isListening) { stopListening(); return; }
     startListening();
   };
 
-  const handleSubmit = (e) => { e.preventDefault(); generate(input); };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if ('speechSynthesis' in window) window.speechSynthesis.resume();
+    generate(input);
+  };
 
   const currentStep = guide?.steps[stepIdx];
   const progress    = guide ? ((stepIdx) / guide.steps.length) * 100 : 0;

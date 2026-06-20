@@ -216,6 +216,8 @@ export default function App() {
   });
 
   const handleMicPress = () => {
+    // Unlock Chrome's autoplay policy on every user gesture
+    if ('speechSynthesis' in window) window.speechSynthesis.resume();
     stop();
     if (isListening) {
       stopListening();
@@ -229,6 +231,8 @@ export default function App() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    // Unlock Chrome's autoplay policy on every user gesture
+    if ('speechSynthesis' in window) window.speechSynthesis.resume();
     runTeachingFlow(prompt, mode);
   };
 

@@ -36,6 +36,7 @@ export default function DictationBoard() {
   });
 
   const handleMic = () => {
+    if ('speechSynthesis' in window) window.speechSynthesis.resume();
     stop();
     if (isListening) { stopListening(); setStatus('idle'); return; }
     setResult(null);
@@ -45,6 +46,7 @@ export default function DictationBoard() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if ('speechSynthesis' in window) window.speechSynthesis.resume();
     runTranslation(manualText);
   };
 
