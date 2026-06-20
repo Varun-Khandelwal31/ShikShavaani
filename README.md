@@ -3,10 +3,7 @@
 > A hands-free AI co-pilot for government school classrooms in Haryana
 
 ## Live Demo
-[URL here]
-
-## Video Walkthrough
-[YouTube/Drive link here - max 3 minutes]
+https://shik-shavaani.vercel.app/
 
 ## Tech Stack
 | Component | Technology | Reason |
