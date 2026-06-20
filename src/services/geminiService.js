@@ -1,15 +1,14 @@
 /**
  * AI Service — tries Gemini first, falls back to Groq (llama-3.3-70b-versatile).
- * Both providers are asked to return strict JSON so the same parser works for both.
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Groq from 'groq-sdk';
 
 const GEMINI_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const GROQ_KEY   = import.meta.env.VITE_GROQ_API_KEY;
 
-// ─── Prompts ────────────────────────────────────────────────────────────────
+// ─── System prompts ──────────────────────────────────────────────────────────
 
 const CONCEPT_SYSTEM_PROMPT = `You are ShikshaVaani, an AI teaching assistant for government school classrooms in Haryana, India. Students are in grades 5-8 and speak Hinglish (a natural mix of Hindi and English). Your job is to explain academic concepts in simple, warm, conversational Hinglish — like a friendly elder sibling who just happens to know everything.
 
@@ -52,96 +51,114 @@ JSON schema:
   ]
 }`;
 
-// ─── JSON parser ─────────────────────────────────────────────────────────────
+const TRANSLATION_SYSTEM_PROMPT = `You are a bilingual translation assistant for Indian school classrooms (grades 5-8). 
+Given a sentence or phrase in any language (usually English or Hinglish), you must:
+1. Return ONLY a valid JSON object — no markdown, no preamble.
+2. Provide the original text, a clean English version, and a proper Hindi (Devanagari) translation.
+3. Also provide a simple Hinglish pronunciation guide for the Hindi text (roman script).
+4. Keep language simple — grade 5-8 level.
+
+JSON schema:
+{
+  "original": "string",
+  "english": "string",
+  "hindi": "string (Devanagari script)",
+  "pronunciation": "string (roman script, how to say the Hindi)",
+  "word_pairs": [{"english": "word", "hindi": "शब्द"}]
+}`;
+
+const ACTIVITY_SYSTEM_PROMPT = `You are ShikshaVaani, an AI classroom activity guide for government school teachers in Haryana, India (grades 5-8).
+Given an activity description, generate a structured, hands-free activity guide.
+
+Rules:
+1. Respond ONLY with valid JSON — no markdown, no code fences.
+2. Steps must be short, clear Hinglish instructions a teacher can read aloud.
+3. Duration in seconds (e.g. 5 min = 300).
+4. Each step has its own time_seconds so a per-step timer can run.
+5. Include a warm encouraging closing message.
+
+JSON schema:
+{
+  "title": "string",
+  "total_seconds": number,
+  "intro": "string (spoken introduction in Hinglish)",
+  "steps": [
+    {
+      "step_number": number,
+      "instruction": "string (Hinglish, read aloud)",
+      "time_seconds": number,
+      "visual_cue": "string (1-2 word label for screen)"
+    }
+  ],
+  "closing": "string (Hinglish encouragement)"
+}`;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function parseJSON(text) {
   const clean = text.replace(/```json|```/gi, '').trim();
-  try {
-    return JSON.parse(clean);
-  } catch {
-    const start = clean.indexOf('{');
-    const end = clean.lastIndexOf('}');
-    if (start >= 0 && end > start) {
-      try {
-        return JSON.parse(clean.slice(start, end + 1));
-      } catch {
-        throw new Error('AI ne valid JSON nahi bheja. Dobara try karein.');
-      }
+  try { return JSON.parse(clean); } catch {
+    const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
+    if (s >= 0 && e > s) {
+      try { return JSON.parse(clean.slice(s, e + 1)); } catch { /* fall */ }
     }
     throw new Error('AI ne valid JSON nahi bheja. Dobara try karein.');
   }
 }
 
-// ─── Provider check helpers ───────────────────────────────────────────────────
-
 function geminiAvailable() {
   return GEMINI_KEY && GEMINI_KEY !== 'your_key_here' && GEMINI_KEY.length > 10;
 }
-
 function groqAvailable() {
   return GROQ_KEY && GROQ_KEY !== 'your_groq_key_here' && GROQ_KEY.length > 10;
 }
-
 function requireAtLeastOne() {
-  if (!geminiAvailable() && !groqAvailable()) {
+  if (!geminiAvailable() && !groqAvailable())
     throw new Error('Koi bhi API key set nahi hai. .env mein VITE_GROQ_API_KEY add karein.');
+}
+
+// ─── Generic Groq caller ──────────────────────────────────────────────────────
+
+async function groqCall(systemPrompt, userMessage, temperature = 0.5) {
+  const client = new Groq({ apiKey: GROQ_KEY, dangerouslyAllowBrowser: true });
+  const res = await client.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    temperature,
+    max_tokens: 2048,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user',   content: userMessage },
+    ],
+  });
+  return parseJSON(res.choices[0].message.content);
+}
+
+// ─── Generic Gemini caller ────────────────────────────────────────────────────
+
+async function geminiCall(systemPrompt, userMessage, temperature = 0.5) {
+  const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  const result = await model.generateContent({
+    contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+    systemInstruction: systemPrompt,
+    generationConfig: { temperature, maxOutputTokens: 2048, responseMimeType: 'application/json' },
+  });
+  return parseJSON(result.response.text());
+}
+
+// ─── Unified caller with fallback ────────────────────────────────────────────
+
+async function callAI(systemPrompt, userMessage, temperature = 0.5) {
+  requireAtLeastOne();
+  if (geminiAvailable()) {
+    try { return await geminiCall(systemPrompt, userMessage, temperature); }
+    catch (err) {
+      if (!groqAvailable()) throw err;
+      console.warn('Gemini failed, falling back to Groq:', err.message);
+    }
   }
-}
-
-// ─── Gemini calls ─────────────────────────────────────────────────────────────
-
-async function geminiExplain(userQuery) {
-  const genAI = new GoogleGenerativeAI(GEMINI_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: userQuery }] }],
-    systemInstruction: CONCEPT_SYSTEM_PROMPT,
-    generationConfig: { temperature: 0.45, maxOutputTokens: 2048, responseMimeType: 'application/json' },
-  });
-  return parseJSON(result.response.text());
-}
-
-async function geminiQuiz(topic) {
-  const genAI = new GoogleGenerativeAI(GEMINI_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-  const result = await model.generateContent({
-    contents: [{ role: 'user', parts: [{ text: `Quiz banao is topic pe: ${topic || 'school topic'}` }] }],
-    systemInstruction: QUIZ_SYSTEM_PROMPT,
-    generationConfig: { temperature: 0.65, maxOutputTokens: 2048, responseMimeType: 'application/json' },
-  });
-  return parseJSON(result.response.text());
-}
-
-// ─── Groq calls ───────────────────────────────────────────────────────────────
-
-async function groqExplain(userQuery) {
-  const client = new Groq({ apiKey: GROQ_KEY, dangerouslyAllowBrowser: true });
-  const completion = await client.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    temperature: 0.45,
-    max_tokens: 2048,
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: CONCEPT_SYSTEM_PROMPT },
-      { role: 'user', content: userQuery },
-    ],
-  });
-  return parseJSON(completion.choices[0].message.content);
-}
-
-async function groqQuiz(topic) {
-  const client = new Groq({ apiKey: GROQ_KEY, dangerouslyAllowBrowser: true });
-  const completion = await client.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    temperature: 0.65,
-    max_tokens: 2048,
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: QUIZ_SYSTEM_PROMPT },
-      { role: 'user', content: `Quiz banao is topic pe: ${topic || 'school topic'}` },
-    ],
-  });
-  return parseJSON(completion.choices[0].message.content);
+  return groqCall(systemPrompt, userMessage, temperature);
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -149,49 +166,30 @@ async function groqQuiz(topic) {
 export let activeProvider = 'none';
 
 export async function explainConcept(userQuery) {
-  requireAtLeastOne();
-
-  if (geminiAvailable()) {
-    try {
-      const data = await geminiExplain(userQuery);
-      if (data.error) throw new Error(data.error);
-      activeProvider = 'gemini';
-      return data;
-    } catch (err) {
-      // If Groq is available as fallback, swallow the error and continue.
-      if (!groqAvailable()) throw err;
-      console.warn('Gemini failed, falling back to Groq:', err.message);
-    }
-  }
-
-  // Groq path
-  const data = await groqExplain(userQuery);
+  const data = await callAI(CONCEPT_SYSTEM_PROMPT, userQuery, 0.45);
   if (data.error) throw new Error(data.error);
-  activeProvider = 'groq';
+  activeProvider = geminiAvailable() ? 'gemini' : 'groq';
   return data;
 }
 
 export async function generateQuiz(topic) {
-  requireAtLeastOne();
-
-  if (geminiAvailable()) {
-    try {
-      const data = await geminiQuiz(topic);
-      if (!Array.isArray(data.questions) || data.questions.length === 0) {
-        throw new Error('Quiz response adhura hai.');
-      }
-      activeProvider = 'gemini';
-      return { ...data, questions: data.questions.slice(0, 4) };
-    } catch (err) {
-      if (!groqAvailable()) throw err;
-      console.warn('Gemini failed, falling back to Groq:', err.message);
-    }
-  }
-
-  const data = await groqQuiz(topic);
-  if (!Array.isArray(data.questions) || data.questions.length === 0) {
+  const data = await callAI(QUIZ_SYSTEM_PROMPT, `Quiz banao is topic pe: ${topic || 'school topic'}`, 0.65);
+  if (!Array.isArray(data.questions) || data.questions.length === 0)
     throw new Error('Quiz response adhura hai. Dobara sawaal bolein.');
-  }
-  activeProvider = 'groq';
+  activeProvider = geminiAvailable() ? 'gemini' : 'groq';
   return { ...data, questions: data.questions.slice(0, 4) };
+}
+
+export async function translateText(text) {
+  const data = await callAI(TRANSLATION_SYSTEM_PROMPT, text, 0.3);
+  activeProvider = geminiAvailable() ? 'gemini' : 'groq';
+  return data;
+}
+
+export async function generateActivityGuide(description) {
+  const data = await callAI(ACTIVITY_SYSTEM_PROMPT, `Activity banao: ${description}`, 0.5);
+  if (!Array.isArray(data.steps) || data.steps.length === 0)
+    throw new Error('Activity guide nahi bana. Dobara try karein.');
+  activeProvider = geminiAvailable() ? 'gemini' : 'groq';
+  return data;
 }

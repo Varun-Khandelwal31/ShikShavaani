@@ -1817,3 +1817,544 @@
   .library-cards { grid-template-columns: 1fr; }
   .planner-grid { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════════════
+   BILINGUAL DICTATION BOARD
+═══════════════════════════════════════════════════ */
+
+.dict-board {
+  display: grid;
+  gap: 20px;
+  animation: cardArrive 0.28s ease both;
+}
+
+.dict-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dict-icon {
+  display: grid;
+  place-items: center;
+  width: 52px; height: 52px;
+  border-radius: var(--radius);
+  background: var(--surface-blue);
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.dict-header h2 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+}
+
+.dict-header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.dict-input-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dict-input-row input {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  font-size: 0.97rem;
+  color: var(--ink);
+  outline: none;
+}
+
+.dict-input-row input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(15,118,110,.1);
+}
+
+.dict-btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dict-btn.primary { background: var(--brand); color: #fff; }
+.dict-btn.primary:disabled { opacity: .45; cursor: not-allowed; }
+.dict-btn.mic { background: #f1f5f9; color: var(--ink); border: 1px solid var(--line); }
+.dict-btn.mic.listening { background: var(--gold); color: #fff; border-color: var(--gold); }
+
+.dict-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.dict-status.listening { background: #fff7ed; color: var(--gold); border: 1px solid rgba(183,121,31,.25); }
+.dict-status.loading   { background: var(--surface-blue); color: var(--accent); border: 1px solid rgba(37,99,235,.15); }
+.dict-status.error     { background: #fff1f0; color: var(--red); border: 1px solid rgba(180,35,24,.2); }
+
+.dict-status.loading span {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: bounceDot .7s ease-in-out infinite alternate;
+}
+.dict-status.loading span:nth-child(2) { animation-delay: .12s; }
+.dict-status.loading span:nth-child(3) { animation-delay: .24s; }
+
+/* Bilingual result */
+.dict-result { display: grid; gap: 16px; }
+
+.dict-bilingual {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.dict-divider {
+  color: var(--muted);
+  font-size: 1.3rem;
+  text-align: center;
+}
+
+.dict-lang-card {
+  padding: 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dict-lang-card.english { background: var(--surface-blue); border-color: rgba(37,99,235,.2); }
+.dict-lang-card.hindi   { background: #fdf6ec;             border-color: rgba(183,121,31,.25); }
+
+.dict-lang-label {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+}
+
+.dict-lang-text {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.12rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.dict-lang-text.hindi-text {
+  font-family: var(--font-hindi);
+  font-size: 1.2rem;
+  color: #92400e;
+}
+
+.dict-pronunciation {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-style: italic;
+}
+
+.dict-replay {
+  align-self: flex-start;
+  padding: 6px 14px;
+  border: 1px solid rgba(183,121,31,.35);
+  border-radius: 999px;
+  background: transparent;
+  color: #92400e;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .2s;
+}
+.dict-replay:hover { background: rgba(183,121,31,.1); }
+
+/* Word pairs */
+.dict-word-pairs h3 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.dict-pairs-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dict-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 0.88rem;
+}
+
+.dict-pair-en  { color: var(--accent); font-weight: 600; }
+.dict-pair-arrow { color: var(--muted); }
+.dict-pair-hi  { color: #92400e; font-family: var(--font-hindi); font-weight: 600; }
+
+.dict-practice-prompt {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  border: 1px solid rgba(15,118,110,.2);
+}
+
+.dict-practice-prompt p { margin: 0; color: var(--brand-dark); font-size: 0.92rem; }
+
+/* ═══════════════════════════════════════════════════
+   HANDS-FREE ACTIVITY GUIDE
+═══════════════════════════════════════════════════ */
+
+.activity-guide {
+  display: grid;
+  gap: 20px;
+  animation: cardArrive 0.28s ease both;
+}
+
+.activity-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.activity-icon {
+  display: grid;
+  place-items: center;
+  width: 52px; height: 52px;
+  border-radius: var(--radius);
+  background: #fef3c7;
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.activity-header h2 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+}
+
+.activity-header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.activity-input-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.activity-input-row input {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  font-size: 0.97rem;
+  color: var(--ink);
+  outline: none;
+}
+
+.activity-input-row input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(15,118,110,.1);
+}
+
+.activity-btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.activity-btn.primary { background: var(--brand); color: #fff; }
+.activity-btn.primary:disabled { opacity: .45; cursor: not-allowed; }
+.activity-btn.mic { background: #f1f5f9; color: var(--ink); border: 1px solid var(--line); }
+.activity-btn.mic.listening { background: var(--gold); color: #fff; border-color: var(--gold); }
+
+.activity-quick-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.activity-quick-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--brand-dark);
+  font-family: var(--font-display);
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.activity-quick-btn:hover { border-color: var(--brand); background: var(--surface-soft); }
+
+.activity-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.activity-status.loading { background: #fefce8; color: var(--gold); border: 1px solid rgba(183,121,31,.2); }
+.activity-status.error   { background: #fff1f0; color: var(--red); border: 1px solid rgba(180,35,24,.2); }
+
+.activity-status.loading span {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: bounceDot .7s ease-in-out infinite alternate;
+}
+.activity-status.loading span:nth-child(2) { animation-delay: .12s; }
+.activity-status.loading span:nth-child(3) { animation-delay: .24s; }
+
+/* Runner */
+.activity-runner { display: grid; gap: 18px; }
+
+.activity-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.activity-title-row h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+}
+
+.activity-title-row span {
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.activity-total-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.activity-total-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand);
+  transition: width .5s ease;
+}
+
+.activity-steps-dots {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.activity-dot {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--line);
+  border: 2px solid transparent;
+  transition: all .3s;
+  display: grid;
+  place-items: center;
+}
+
+.activity-dot.done   { background: #ccfbf1; border-color: var(--brand); }
+.activity-dot.active { background: var(--brand); border-color: var(--brand-dark); box-shadow: 0 0 0 4px rgba(15,118,110,.2); }
+
+/* Step card */
+.activity-step-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: center;
+  padding: 22px;
+  border: 2px solid var(--brand);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f0fdfb, #ffffff);
+  box-shadow: 0 8px 24px rgba(15,118,110,.1);
+  animation: cardArrive .25s ease both;
+}
+
+.activity-step-num {
+  color: var(--brand);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 4px;
+}
+
+.activity-step-cue {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.activity-step-instruction {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  font-family: var(--font-hindi);
+}
+
+/* Circular countdown */
+.activity-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100px; height: 100px;
+  flex-shrink: 0;
+}
+
+.activity-ring svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.activity-ring-track, .activity-ring-fill {
+  fill: none;
+  stroke-width: 10;
+}
+
+.activity-ring-track { stroke: var(--line); }
+
+.activity-ring-fill {
+  stroke: var(--ring-color, var(--brand));
+  stroke-linecap: round;
+  stroke-dasharray: 314;
+  stroke-dashoffset: calc(314 * (1 - var(--ring-progress, 1)));
+  transition: stroke-dashoffset 1s linear, stroke .3s;
+}
+
+.activity-ring-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+}
+
+.activity-ring-inner strong {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.activity-ring-inner span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+/* Controls */
+.activity-controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.activity-ctrl-btn {
+  padding: 9px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+}
+
+.activity-ctrl-btn:hover { background: var(--surface-soft); border-color: var(--brand); }
+.activity-ctrl-btn.danger { color: var(--red); }
+.activity-ctrl-btn.danger:hover { background: #fff1f0; border-color: var(--red); }
+
+/* Done card */
+.activity-done-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px;
+  border: 1px solid rgba(15,118,110,.25);
+  border-radius: 12px;
+  background: #f0fdfb;
+  text-align: center;
+  animation: cardArrive .3s ease both;
+}
+
+.activity-done-icon { font-size: 3rem; }
+.activity-done-card p {
+  margin: 0;
+  color: var(--brand-dark);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  max-width: 500px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .dict-bilingual { grid-template-columns: 1fr; }
+  .dict-divider { text-align: center; }
+  .activity-step-card { grid-template-columns: 1fr; }
+  .activity-ring { margin: 0 auto; }
+}

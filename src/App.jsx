@@ -10,6 +10,8 @@ import ErrorState from './components/ErrorState.jsx';
 import EmptyState from './components/EmptyState.jsx';
 import TutorAvatar from './components/TutorAvatar.jsx';
 import NarrationBox from './components/NarrationBox.jsx';
+import DictationBoard from './components/DictationBoard.jsx';
+import ActivityGuide from './components/ActivityGuide.jsx';
 import LessonPlanner from './pages/LessonPlanner.jsx';
 import Reports from './pages/Reports.jsx';
 import ContentLibrary from './pages/ContentLibrary.jsx';
@@ -19,10 +21,12 @@ import { useSpeechSynthesis } from './hooks/useSpeechSynthesis.js';
 import { explainConcept, generateQuiz, activeProvider } from './services/geminiService.js';
 
 const QUICK_PROMPTS = [
-  { mode: 'concept', label: 'Photosynthesis samjhao', prompt: 'Photosynthesis class 6 ke liye Hinglish mein samjhao' },
-  { mode: 'concept', label: 'Fractions example', prompt: 'Fractions ko roti ke example se samjhao' },
-  { mode: 'quiz', label: 'Water cycle quiz', prompt: 'Water cycle par quiz banao' },
-  { mode: 'quiz', label: 'Gravity quiz', prompt: 'Gravity par quiz banao class 7 ke liye' },
+  { mode: 'concept',   label: 'Photosynthesis samjhao', prompt: 'Photosynthesis class 6 ke liye Hinglish mein samjhao' },
+  { mode: 'concept',   label: 'Fractions example',      prompt: 'Fractions ko roti ke example se samjhao' },
+  { mode: 'quiz',      label: 'Water cycle quiz',        prompt: 'Water cycle par quiz banao' },
+  { mode: 'quiz',      label: 'Gravity quiz',            prompt: 'Gravity par quiz banao class 7 ke liye' },
+  { mode: 'dictation', label: 'Sun rises east',          prompt: 'The sun rises in the east' },
+  { mode: 'activity',  label: '5 min group discussion',  prompt: '5 minute group discussion on water cycle' },
 ];
 
 const NAV_ITEMS = [
@@ -381,7 +385,9 @@ export default function App() {
                   {!error && status !== 'thinking' && mode === 'quiz' && quizData && (
                     <QuizBoard data={quizData} onSpeak={speak} onAnswer={handleQuizAnswer} />
                   )}
-                  {!hasContent && <EmptyState mode={mode} />}
+                  {mode === 'dictation' && <DictationBoard />}
+                  {mode === 'activity'  && <ActivityGuide />}
+                  {!hasContent && mode !== 'dictation' && mode !== 'activity' && <EmptyState mode={mode} />}
                 </section>
 
                 <aside className="session-panel" aria-label="Session details">
